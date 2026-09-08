@@ -2599,7 +2599,7 @@ var localUsers=JSON.parse(localStorage.getItem('cl_localUsers')||'[]');
 function saveLocalUser(user){localUsers.push(user);localStorage.setItem('cl_localUsers',JSON.stringify(localUsers));var allUsersStore=JSON.parse(localStorage.getItem('cl_allUsers')||'[]');if(!allUsersStore.find(function(u){return u.id===user.id})){allUsersStore.push({id:user.id,email:user.email||'',name:user.name||user.user_metadata&&user.user_metadata.display_name||'User',handle:user.handle||user.user_metadata&&user.user_metadata.handle||'@user',avatar:user.avatar||user.user_metadata&&user.user_metadata.avatar||''});localStorage.setItem('cl_allUsers',JSON.stringify(allUsersStore))}}
 function findLocalUser(email,password){return localUsers.find(function(u){return u.email===email&&u.password===password})}
 function getLocalUserById(id){return localUsers.find(function(u){return u.id===id})}
-function syncLocalUserToCu(lu){return{id:lu.id,email:lu.email,user_metadata:{display_name:lu.name,handle:lu.handle,bio:lu.bio||'',avatar:lu.avatar||''}}}
+function syncLocalUserToCu(lu){var theme=localStorage.getItem('cl_conv_theme_'+lu.id)||'';return{id:lu.id,email:lu.email,user_metadata:{display_name:lu.name,handle:lu.handle,bio:lu.bio||'',avatar:lu.avatar||'',conversation_theme:theme}}}
 
 // ==================== FOLLOWS (SUPABASE) ====================
 var sbFollows={};
@@ -3771,7 +3771,7 @@ if(sb&&supabaseOnline){
     await sb.from('profiles').update({display_name:newName,handle:newHandle,bio:newBio,avatar_url:newAvatar,conversation_theme:themeStr}).eq('id',cu.id);
   }catch(e){console.log('Supabase save error',e);showToast('Saved locally — sync when online')}
 }
-var lu=localUsers.find(function(u){return u.id===cu.id});if(lu){lu.name=newName;lu.handle=newHandle;lu.bio=newBio;lu.avatar=newAvatar;localStorage.setItem('cl_localUsers',JSON.stringify(localUsers));cu=syncLocalUserToCu(lu);svu()}
+var lu=localUsers.find(function(u){return u.id===cu.id});if(lu){lu.name=newName;lu.handle=newHandle;lu.bio=newBio;lu.avatar=newAvatar;localStorage.setItem('cl_localUsers',JSON.stringify(localUsers));var allUsersStore=JSON.parse(localStorage.getItem('cl_allUsers')||'[]');var au=allUsersStore.find(function(u){return u.id===cu.id});if(au){au.name=newName;au.handle=newHandle;au.avatar=newAvatar;localStorage.setItem('cl_allUsers',JSON.stringify(allUsersStore))}svu()}
 finishEdit(newName,newHandle,newBio,newAvatar)};
 function finishEdit(n,h,b,a){
   svu();
@@ -4174,74 +4174,7 @@ window.renderPremiumPayPalButtons=function(){
     }).render('#premium-paypal-container');
   }
 };
-window.goLive = async function() {
-  if (!cu) { showToast('Please sign in first'); return; }
-  var isPremium = isUserPremium(cu.id);
-  if (!isPremium) { showPremiumModal(); return; }
-  $('live-o').classList.add('on');
-  try {
-    var s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
-    $('live-v').srcObject = s;
-    liveStream = s;
-    liveViewers = 0;
-    liveViewerInterval = setInterval(function() {
-      liveViewers += Math.floor(Math.random() * 3);
-      $('live-viewers').textContent = liveViewers + ' viewer' + (liveViewers !== 1 ? 's' : '');
-    }, 3000);
-    var liveNames = ['Alex','Jordan','Taylor','Morgan','Casey','Riley','Jamie','Avery','Quinn','Skyler','Dakota','Reese'];
-    var liveMsgs = ['Nice stream!','Heyyyy','Looking good','First!','Where are you?','Love this','🔥🔥🔥','Hows it going','What camera is that','You look great','Hello from Canada','Subscribed!','Been following since day 1','This is fire','Can you hear me','Audio is good','Video quality nice','Whats the setup','More streams please','Yooo'];
-    var liveGifts = ['sent a ❤️','sent a 🔥','sent a ⭐','sent a 👏','sent a 🙌'];
-    liveChatInterval = setInterval(function() {
-      var chat = $('live-chat');
-      if (!chat) return;
-      var r = Math.random();
-      var div = document.createElement('div');
-      div.className = 'live-chat-msg';
-      if (r < 0.15) {
-        var gift = liveGifts[Math.floor(Math.random() * liveGifts.length)];
-        var name = liveNames[Math.floor(Math.random() * liveNames.length)];
-        div.innerHTML = "<span style='color:#FFD700'>" + esc(name) + ' ' + gift + "</span>";
-      } else {
-        var name = liveNames[Math.floor(Math.random() * liveNames.length)];
-        var msg = liveMsgs[Math.floor(Math.random() * liveMsgs.length)];
-        div.innerHTML = '<b>' + esc(name) + ':</b> ' + esc(msg);
-      }
-      chat.appendChild(div);
-      chat.scrollTop = chat.scrollHeight;
-      if (chat.children.length > 30) chat.removeChild(chat.firstChild);
-    }, 4000);
-  } catch (e) { showToast('Camera error: ' + e.message); endLive(); }
-};
-window.endLive = function() {
-  if (!confirm('End your live stream?')) return;
-  $('live-o').classList.remove('on');
-  if (liveStream) { liveStream.getTracks().forEach(function(t) { t.stop(); }); liveStream = null; }
-  if (liveViewerInterval) { clearInterval(liveViewerInterval); liveViewerInterval = null; }
-  if (liveChatInterval) { clearInterval(liveChatInterval); liveChatInterval = null; }
-  $('live-chat').innerHTML = '';
-  showToast('Live ended');
-};
-window.sendLiveChat = function() {
-  var inp = $('live-chat-input');
-  var t = inp.value.trim();
-  if (!t) return;
-  var chat = $('live-chat');
-  var div = document.createElement('div');
-  div.className = 'live-chat-msg';
-  div.style.alignSelf = 'flex-end';
-  div.style.background = 'rgba(230,201,106,0.2)';
-  div.style.color = '#FFD700';
-  var name = cu && cu.user_metadata && cu.user_metadata.display_name ? cu.user_metadata.display_name : 'You';
-  div.innerHTML = '<b>' + esc(name) + ':</b> ' + esc(t);
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
-  if (chat.children.length > 20) chat.removeChild(chat.firstChild);
-  inp.value = '';
-};
 var liveStream = null;
-var liveViewers = 0;
-var liveViewerInterval = null;
-var liveChatInterval = null;
 
 // ==================== VIDEO CALLS ====================
 /* ============ VIDEO CALLS (WebRTC via Supabase Realtime) ============ */
