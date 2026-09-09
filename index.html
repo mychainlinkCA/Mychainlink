@@ -935,6 +935,29 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1}
 .p-card .info .h{font-size:15px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .p-card .actions{display:flex;gap:8px;flex-wrap:wrap}
 
+/* === ONLINE INDICATOR ======================================= */
+.av-online{position:relative}
+.av-online::after{
+  content:'';position:absolute;bottom:2px;right:2px;width:14px;height:14px;
+  background:#22C55E;border-radius:50%;border:2px solid var(--surf);
+  box-shadow:0 0 0 1px rgba(34,197,94,0.4);
+}
+.active-connector{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  cursor:pointer;flex-shrink:0;min-width:64px;
+}
+.active-connector .av{
+  width:56px;height:56px;border-radius:50%;background:linear-gradient(145deg,var(--gold-hi),var(--gold-deep));
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#14120E;
+  overflow:hidden;box-shadow:0 0 0 2px var(--surf),0 0 0 3px var(--gold-edge);
+}
+.active-connector .av img{width:100%;height:100%;object-fit:cover}
+.active-connector .name{
+  font-size:12px;color:var(--ink-2);max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  text-align:center;
+}
+#active-connectors-list::-webkit-scrollbar{display:none}
+
 /* === PAYPAL ================================================= */
 .pp-box{text-align:center;padding:6px}
 .pp-box h3{font-size:23px;margin-bottom:8px;font-weight:700}
@@ -1822,9 +1845,20 @@ window.showAuth = function(tab) {
   <!-- PEOPLE -->
   <div class="page" id="pg-people">
     <h2 style="font-size:25px;margin-bottom:16px">Find Your Connection</h2>
-    <div class="sch-wrap" style="position:relative">
-      <input type="text" id="p-sch" placeholder="Search by name or username" oninput="debounceSchPpl(this.value)" onkeyup="debounceSchPpl(this.value)" onfocus="showRecentSearches()" onblur="hideRecentSearchesSoon()">
-      <button id="p-sch-clear" onclick="$('p-sch').value='';renderPeople();hideRecentSearches()" style="display:none;position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#888;font-size:19px;padding:0;width:24px;height:24px;line-height:24px">×</button>
+    <!-- ACTIVE CONNECTORS -->
+    <div id="active-connectors" style="display:none;margin-bottom:16px">
+      <div style="font-size:12px;color:var(--ink-3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Active Now</div>
+      <div id="active-connectors-list" style="display:flex;gap:12px;overflow-x:auto;padding:4px 0;scrollbar-width:none;-ms-overflow-style:none">
+        <!-- Active users injected here -->
+      </div>
+    </div>
+    <div class="sch-wrap" style="position:relative;display:flex;gap:8px;align-items:center">
+      <input type="text" id="p-sch" placeholder="Search by name or username" oninput="debounceSchPpl(this.value)" onkeyup="debounceSchPpl(this.value)" onfocus="showRecentSearches()" onblur="hideRecentSearchesSoon()" style="flex:1;padding-right:80px">
+      <button id="p-sch-btn" onclick="var v=$('p-sch').value.trim();if(v)schPpl(v)" style="background:var(--gold);border:none;border-radius:var(--r-pill);padding:10px 16px;color:#14120E;font-weight:700;font-size:14px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;gap:6px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Search
+      </button>
+      <button id="p-sch-clear" onclick="$('p-sch').value='';renderPeople();hideRecentSearches()" style="display:none;position:absolute;right:90px;top:50%;transform:translateY(-50%);background:none;border:none;color:#888;font-size:19px;padding:0;width:24px;height:24px;line-height:24px">×</button>
       <div id="recent-searches" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surf);border:1px solid var(--line);border-radius:0 0 var(--r) var(--r);z-index:100;max-height:200px;overflow-y:auto;box-shadow:var(--sh-2)"></div>
     </div>
     <div class="p-list" id="ppl-list"></div>
@@ -3441,7 +3475,7 @@ window.saveResetPassword=async function(){
   showLogin();
 };
 
-window.lo=async function(){if(sb)await sb.auth.signOut();cu=null;localStorage.removeItem('cl_user');localStorage.removeItem('cl_posts');sessionStorage.removeItem('cl_active_session');showToast('Signed out');location.reload()};
+window.lo=async function(){stopHeartbeat();if(sb)await sb.auth.signOut();cu=null;localStorage.removeItem('cl_user');localStorage.removeItem('cl_posts');sessionStorage.removeItem('cl_active_session');showToast('Signed out');location.reload()};
 window.saveAccount=function(user){if(!user||!user.id)return;var saved=JSON.parse(localStorage.getItem('cl_savedAccounts')||'[]');var idx=saved.findIndex(function(a){return a.id===user.id});var acc={id:user.id,email:user.email||'',name:user.user_metadata&&user.user_metadata.display_name?user.user_metadata.display_name:'User',avatar:user.user_metadata&&user.user_metadata.avatar?user.user_metadata.avatar:'',handle:user.user_metadata&&user.user_metadata.handle?user.user_metadata.handle:'@user'};if(idx>-1){saved[idx]=acc}else{saved.push(acc)}localStorage.setItem('cl_savedAccounts',JSON.stringify(saved))};
 window.showSwitchAccount=function(){var list=$('switch-acct-list');var saved=JSON.parse(localStorage.getItem('cl_savedAccounts')||'[]');if(!saved.length){list.innerHTML='<div style="text-align:center;padding:20px;color:#888">No saved accounts</div>';$('m-switch-acct').classList.add('on');return}var h='';saved.forEach(function(a){h+='<div style="display:flex;align-items:center;gap:12px;padding:12px;background:#1C1C1C;border-radius:12px;margin-bottom:8px;cursor:pointer" onclick="switchToAccount(\''+a.id+'\')">';h+='<div class="av" style="width:40px;height:40px;font-size:17px">'+(a.avatar?'<img src="'+a.avatar+'" style="width:100%;height:100%;object-fit:cover">':(a.name?a.name[0].toUpperCase():'?'))+'</div>';h+='<div style="flex:1"><div style="font-weight:700;font-size:15px">'+esc(a.name)+'</div><div style="font-size:15px;color:#888">'+esc(a.handle)+'</div></div>';h+='<button class="btn btn-outline btn-sm" style="padding:4px 8px;font-size:15px" onclick="event.stopPropagation();removeSavedAccount(\''+a.id+'\')">Remove</button>';h+='</div>'});list.innerHTML=h;$('m-switch-acct').classList.add('on')};
 window.switchToAccount=function(id){var saved=JSON.parse(localStorage.getItem('cl_savedAccounts')||'[]');var acc=saved.find(function(a){return a.id===id});if(!acc){showToast('Account not found');return}closeModal('m-switch-acct');showToast('Switching...');setTimeout(function(){location.href='login.html?email='+encodeURIComponent(acc.email||'')},300)};
@@ -3476,10 +3510,10 @@ window.showApp=async function(){
   renderNews();renderNotifDrop();updateNotifBadge();
   if(!localStorage.getItem('cl_username_banner_dismissed')){var banner=document.getElementById('username-fix-banner');if(banner)banner.style.display='block'}
   if(!localStorage.getItem('cl_tutorial_seen')){console.log('[Tutorial] Will show in 1.2s');setTimeout(function(){console.log('[Tutorial] Timeout fired');if(cu&&sb&&supabaseOnline){sb.from('profiles').select('tutorial_seen').eq('id',cu.id).single().then(function(r){if(r.data&&r.data.tutorial_seen){console.log('[Tutorial] Already seen per Supabase');localStorage.setItem('cl_tutorial_seen','1');return}showTut()}).catch(function(){showTut()})}else{showTut()}},1200)};
-  subscribeToNotifications();loadNotificationsFromSupabase();syncDeletedUsers();updateNotifBadge();updateMsgBadge();checkTrialReminder()
+  subscribeToNotifications();loadNotificationsFromSupabase();syncDeletedUsers();updateNotifBadge();updateMsgBadge();checkTrialReminder();startHeartbeat();
 };
 
-window.checkTrialReminder=function(){if(!cu)return;var trialStart=localStorage.getItem('cl_trial_start_'+cu.id);var isPaid=localStorage.getItem('cl_premium_'+cu.id);if(!trialStart||isPaid==='true')return;var days=Math.floor((Date.now()-new Date(trialStart).getTime())/(1000*60*60*24));var daysLeft=7-days;if(daysLeft<=0){showToast('Your 7-day trial has ended. Subscribe to keep Premium!');showPremiumModal();return}if(daysLeft<=2){showToast('Your free trial ends in '+daysLeft+' day'+(daysLeft===1?'':'s')+'. Subscribe now to avoid interruption.')}};window.navTo=function(p){var map=['main','explore','cam','messages','profile'];var pageMap={main:'pg-main',explore:'pg-people',people:'pg-people',cam:'pg-cam',messages:'pg-messages',profile:'pg-profile',settings:'pg-settings',user:'pg-user','coming-soon':'pg-coming-soon'};if(!pageMap[p])return;map.forEach(function(x){var el=document.querySelector('.mit[onclick="navTo(\''+x+'\')"]');if(el)el.classList.remove('a')});var activeBtn=document.querySelector('.mit[onclick="navTo(\''+p+'\')"]');if(activeBtn)activeBtn.classList.add('a');Object.values(pageMap).forEach(function(id){$(id).classList.remove('active')});$(pageMap[p]).classList.add('active');cp=p;if(p==='profile'){renderProfile()}if(p==='main'){renderNews()}if(p==='explore'||p==='people'){var schVal=$('p-sch').value.trim();if(schVal){schPpl(schVal)}else{renderPeople()}}if(p==='messages'){renderMessages();clearMsgBadge();if(window.msgChannel){try{window.msgChannel.unsubscribe()}catch(e){}}window.msgChannel=null;window.currentConvId=null}};
+window.checkTrialReminder=function(){if(!cu)return;var trialStart=localStorage.getItem('cl_trial_start_'+cu.id);var isPaid=localStorage.getItem('cl_premium_'+cu.id);if(!trialStart||isPaid==='true')return;var days=Math.floor((Date.now()-new Date(trialStart).getTime())/(1000*60*60*24));var daysLeft=7-days;if(daysLeft<=0){showToast('Your 7-day trial has ended. Subscribe to keep Premium!');showPremiumModal();return}if(daysLeft<=2){showToast('Your free trial ends in '+daysLeft+' day'+(daysLeft===1?'':'s')+'. Subscribe now to avoid interruption.')}};window.navTo=function(p){var map=['main','explore','cam','messages','profile'];var pageMap={main:'pg-main',explore:'pg-people',people:'pg-people',cam:'pg-cam',messages:'pg-messages',profile:'pg-profile',settings:'pg-settings',user:'pg-user','coming-soon':'pg-coming-soon'};if(!pageMap[p])return;map.forEach(function(x){var el=document.querySelector('.mit[onclick="navTo(\''+x+'\')"]');if(el)el.classList.remove('a')});var activeBtn=document.querySelector('.mit[onclick="navTo(\''+p+'\')"]');if(activeBtn)activeBtn.classList.add('a');Object.values(pageMap).forEach(function(id){$(id).classList.remove('active')});$(pageMap[p]).classList.add('active');cp=p;if(p==='profile'){renderProfile()}if(p==='main'){renderNews()}if(p==='explore'||p==='people'){var schVal=$('p-sch').value.trim();if(schVal){schPpl(schVal)}else{renderPeople()}loadActiveConnectors()}if(p==='messages'){renderMessages();clearMsgBadge();if(window.msgChannel){try{window.msgChannel.unsubscribe()}catch(e){}}window.msgChannel=null;window.currentConvId=null}};
 function goBackFromUser(){if(cp==='people'){navTo('explore')}else{navTo('main')}}window.goBackFromUser=goBackFromUser;
 
 // ==================== NOTIFICATIONS PULLDOWN ====================
@@ -3880,8 +3914,9 @@ window.schPpl=async function(v){
     var h='';
     users.forEach(function(u){
       var isFollowing=follows[u.id]&&follows[u.id].following;
+      var onlineClass = isUserOnline(u.last_active) ? 'av-online' : '';
       h+='<div class="p-card">';
-      h+='<div class="av">'+(u.avatar?'<img src="'+u.avatar+'">':(u.name?u.name[0].toUpperCase():'?'))+'</div>';
+      h+='<div class="av '+onlineClass+'">'+(u.avatar?'<img src="'+u.avatar+'">':(u.name?u.name[0].toUpperCase():'?'))+'</div>';
       h+='<div class="info"><div class="n">'+esc(u.name)+'</div><div class="h">'+esc(u.handle)+'</div></div>';
       h+='<div class="actions">';
       h+='<button class="btn btn-outline btn-sm" onclick="viewUser('+(u.id?"'"+u.id+"'":'')+')">View</button>';
@@ -3912,19 +3947,19 @@ window.schPpl=async function(v){
         dbErrorMsg=r.error.message||'DB error';
         // Fallback: try OR query
         var ilike='%'+v+'%';
-        r=await sb.from('profiles').select('id,display_name,handle,avatar_url,bio').or('display_name.ilike.'+ilike+',handle.ilike.'+ilike).limit(50);
+        r=await sb.from('profiles').select('id,display_name,handle,avatar_url,bio,last_active').or('display_name.ilike.'+ilike+',handle.ilike.'+ilike).limit(50);
         if(r.error){
           console.log('[search] or error:',r.error);
           dbErrorMsg=r.error.message||'DB error';
           // Fallback 2: display_name only
-          r=await sb.from('profiles').select('id,display_name,handle,avatar_url,bio').ilike('display_name',ilike).limit(50);
+          r=await sb.from('profiles').select('id,display_name,handle,avatar_url,bio,last_active').ilike('display_name',ilike).limit(50);
         }
       }
       if(r.data&&r.data.length){
         console.log('[search] DB found:',r.data.length);
         r.data.forEach(function(u){
           if(u.id!==(cu&&cu.id)){
-            addUser({id:u.id,name:u.display_name||'User',handle:u.handle||'@user',avatar:u.avatar_url||'',bio:u.bio||''});
+            addUser({id:u.id,name:u.display_name||'User',handle:u.handle||'@user',avatar:u.avatar_url||'',bio:u.bio||'',last_active:u.last_active});
           }
         });
         hasDbResults=true;
@@ -3933,7 +3968,7 @@ window.schPpl=async function(v){
         try{cache=JSON.parse(localStorage.getItem('cl_allUsers')||'[]')}catch(e){cache=[]}
         r.data.forEach(function(u){
           if(!cache.find(function(x){return x.id===u.id})){
-            cache.push({id:u.id,email:'',name:u.display_name||'User',handle:u.handle||'@user',avatar:u.avatar_url||'',bio:u.bio||''});
+            cache.push({id:u.id,email:'',name:u.display_name||'User',handle:u.handle||'@user',avatar:u.avatar_url||'',bio:u.bio||'',last_active:u.last_active});
           }
         });
         localStorage.setItem('cl_allUsers',JSON.stringify(cache));
@@ -3999,6 +4034,72 @@ window.showRecentSearches=async function(){
 window.hideRecentSearches=function(){var box=$('recent-searches');if(box)box.style.display='none'};
 var _recentHideTimer=null;window.hideRecentSearchesSoon=function(){if(_recentHideTimer)clearTimeout(_recentHideTimer);_recentHideTimer=setTimeout(hideRecentSearches,200)};
 window.clearRecentSearches=async function(){if(!cu||!sb)return;try{await sb.from('search_history').delete().eq('user_id',cu.id);hideRecentSearches()}catch(e){console.log('clear search err',e)}};
+
+// ==================== ACTIVE CONNECTORS / ONLINE STATUS =====
+const ACTIVE_THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes
+var _heartbeatTimer = null;
+
+window.startHeartbeat = function(){
+  if(_heartbeatTimer) clearInterval(_heartbeatTimer);
+  if(!cu || !sb || !supabaseOnline) return;
+  // Update immediately
+  updateLastActive();
+  // Then every 30 seconds
+  _heartbeatTimer = setInterval(updateLastActive, 30000);
+};
+
+window.stopHeartbeat = function(){
+  if(_heartbeatTimer){ clearInterval(_heartbeatTimer); _heartbeatTimer = null; }
+};
+
+window.updateLastActive = async function(){
+  if(!cu || !sb || !supabaseOnline) return;
+  try{
+    await sb.from('profiles').update({last_active: new Date().toISOString()}).eq('id', cu.id);
+  }catch(e){ console.log('[heartbeat] error', e); }
+};
+
+window.isUserOnline = function(lastActive){
+  if(!lastActive) return false;
+  var last = new Date(lastActive).getTime();
+  return (Date.now() - last) < ACTIVE_THRESHOLD_MS;
+};
+
+window.loadActiveConnectors = async function(){
+  var container = $('active-connectors');
+  var list = $('active-connectors-list');
+  if(!container || !list) return;
+  if(!sb || !supabaseOnline){
+    container.style.display = 'none';
+    return;
+  }
+  try{
+    var cutoff = new Date(Date.now() - ACTIVE_THRESHOLD_MS).toISOString();
+    var r = await sb.from('profiles')
+      .select('id,display_name,handle,avatar_url,last_active')
+      .gt('last_active', cutoff)
+      .neq('id', cu ? cu.id : '')
+      .limit(20);
+    if(r.error){ console.log('[active] error', r.error); container.style.display = 'none'; return; }
+    var users = r.data || [];
+    if(!users.length){ container.style.display = 'none'; return; }
+    var h = '';
+    users.forEach(function(u){
+      var name = u.display_name || 'User';
+      var initial = name[0].toUpperCase();
+      h += '<div class="active-connector" onclick="viewUser(' + (u.id ? "'" + u.id + "'" : '') + ')">';
+      h += '<div class="av av-online">' + (u.avatar_url ? '<img src="' + u.avatar_url + '">' : initial) + '</div>';
+      h += '<div class="name">' + esc(name) + '</div>';
+      h += '</div>';
+    });
+    list.innerHTML = h;
+    container.style.display = 'block';
+  }catch(e){
+    console.log('[active] exception', e);
+    container.style.display = 'none';
+  }
+};
+
 window.toggleFollowVU=function(){if(!cu||!vu)return;if(!follows[vu.id])follows[vu.id]={following:false,subscribed:false};var wasFollowing=follows[vu.id].following;follows[vu.id].following=!follows[vu.id].following;svf();saveFollowSupabase(vu.id,follows[vu.id].following);var allFollowers=JSON.parse(localStorage.getItem('cl_followers')||'{}');if(!allFollowers[vu.id])allFollowers[vu.id]=[];var myIdx=allFollowers[vu.id].indexOf(cu.id);if(follows[vu.id].following){if(myIdx===-1)allFollowers[vu.id].push(cu.id);if(vu.id!==cu.id&&!wasFollowing){addNotification('follow',vu.id,'connected with you')}}else{if(myIdx>-1)allFollowers[vu.id].splice(myIdx,1)}localStorage.setItem('cl_followers',JSON.stringify(allFollowers));$('vu-fbtn').textContent=follows[vu.id].following?'Disconnect':'Connect';showToast(follows[vu.id].following?'Connected!':'Disconnected')};
 window.toggleFollow=function(){if(!cu)return};
 window.toggleFollowId=function(id){if(!cu||!id)return;if(!follows[id])follows[id]={following:false,subscribed:false};var wasFollowing=follows[id].following;follows[id].following=!follows[id].following;svf();saveFollowSupabase(id,follows[id].following);var allFollowers=JSON.parse(localStorage.getItem('cl_followers')||'{}');if(!allFollowers[id])allFollowers[id]=[];var myIdx=allFollowers[id].indexOf(cu.id);if(follows[id].following){if(myIdx===-1)allFollowers[id].push(cu.id);if(id!==cu.id&&!wasFollowing){addNotification('follow',id,'connected with you')}}else{if(myIdx>-1)allFollowers[id].splice(myIdx,1)}localStorage.setItem('cl_followers',JSON.stringify(allFollowers))};

@@ -25,6 +25,7 @@ CREATE TABLE profiles (
   is_creator BOOLEAN DEFAULT FALSE,
   location TEXT,
   website TEXT,
+  last_active TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -391,11 +392,12 @@ RETURNS TABLE (
   display_name TEXT,
   handle TEXT,
   avatar_url TEXT,
-  bio TEXT
+  bio TEXT,
+  last_active TIMESTAMPTZ
 ) AS $$
 BEGIN
   RETURN QUERY
-  SELECT p.id, p.display_name, p.handle, p.avatar_url, p.bio
+  SELECT p.id, p.display_name, p.handle, p.avatar_url, p.bio, p.last_active
   FROM profiles p
   WHERE p.display_name ILIKE '%' || search_term || '%'
      OR p.handle ILIKE '%' || search_term || '%'
