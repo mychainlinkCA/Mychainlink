@@ -1822,9 +1822,10 @@ window.showAuth = function(tab) {
   <!-- PEOPLE -->
   <div class="page" id="pg-people">
     <h2 style="font-size:25px;margin-bottom:16px">Find Your Connection</h2>
-    <div class="sch-wrap">
-      <input type="text" id="p-sch" placeholder="Search by name or username" oninput="debounceSchPpl(this.value)" onkeyup="debounceSchPpl(this.value)">
-      <button id="p-sch-clear" onclick="$('p-sch').value='';renderPeople()" style="display:none;position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#888;font-size:19px;padding:0;width:24px;height:24px;line-height:24px">×</button>
+    <div class="sch-wrap" style="position:relative">
+      <input type="text" id="p-sch" placeholder="Search by name or username" oninput="debounceSchPpl(this.value)" onkeyup="debounceSchPpl(this.value)" onfocus="showRecentSearches()" onblur="hideRecentSearchesSoon()">
+      <button id="p-sch-clear" onclick="$('p-sch').value='';renderPeople();hideRecentSearches()" style="display:none;position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#888;font-size:19px;padding:0;width:24px;height:24px;line-height:24px">×</button>
+      <div id="recent-searches" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surf);border:1px solid var(--line);border-radius:0 0 var(--r) var(--r);z-index:100;max-height:200px;overflow-y:auto;box-shadow:var(--sh-2)"></div>
     </div>
     <div class="p-list" id="ppl-list"></div>
     <div class="page-footer" style="margin-top:32px;padding:20px 0;border-top:1px solid var(--line);text-align:center;font-size:13px;color:var(--ink-4)">
@@ -3821,6 +3822,13 @@ window.schPpl=async function(v){
   var term=v.toLowerCase();
   var termNoAt=term.replace(/^@/,'');
 
+  // ====== SAVE SEARCH QUERY TO SUPABASE ======
+  if(cu&&sb&&supabaseOnline&&v.trim().length>=2){
+    try{
+      sb.from('search_history').insert({user_id:cu.id,query:v.trim()}).then(function(r){if(r.error)console.log('[search] save error',r.error);else console.log('[search] saved')}).catch(function(e){console.log('[search] save exc',e)});
+    }catch(e){}
+  }
+
   // ====== BUILD LOCAL CANDIDATES FIRST (instant) ======
   var allUsers=[];var allUsersMap={};
   function addUser(u){
@@ -3897,16 +3905,20 @@ window.schPpl=async function(v){
   // ====== QUERY SUPABASE IN BACKGROUND ======
   if(sb&&supabaseOnline){
     try{
-      var ilike='%'+v+'%';
-      // Try combined search with OR
-      var r=await sb.from('profiles').select('id,display_name,handle,avatar_url,bio').or('display_name.ilike.'+ilike+',handle.ilike.'+ilike).limit(50);
+      // Try RPC search_profiles first (most robust)
+      var r=await sb.rpc('search_profiles',{search_term:v});
       if(r.error){
-        console.log('[search] combined error:',r.error);
+        console.log('[search] rpc error:',r.error);
         dbErrorMsg=r.error.message||'DB error';
-        // Fallback: try display_name only
-        try{
+        // Fallback: try OR query
+        var ilike='%'+v+'%';
+        r=await sb.from('profiles').select('id,display_name,handle,avatar_url,bio').or('display_name.ilike.'+ilike+',handle.ilike.'+ilike).limit(50);
+        if(r.error){
+          console.log('[search] or error:',r.error);
+          dbErrorMsg=r.error.message||'DB error';
+          // Fallback 2: display_name only
           r=await sb.from('profiles').select('id,display_name,handle,avatar_url,bio').ilike('display_name',ilike).limit(50);
-        }catch(e2){}
+        }
       }
       if(r.data&&r.data.length){
         console.log('[search] DB found:',r.data.length);
@@ -3964,7 +3976,29 @@ window.schPpl=async function(v){
   renderResults(filtered,msg);
   console.log('[search] done');
 };
-window.viewUser=async function(id){if(!id)return;var u=getUserData(id);if(!u){u=await fetchUserFromSupabase(id)}if(!u){showToast('User not found');return}vu=u;var isMe=cu&&u.id===cu.id;var myPosts=posts.filter(function(p){return p.uid===u.id});$('vu-av').innerHTML=u.avatar?'<img src="'+u.avatar+'">':(u.name?u.name[0].toUpperCase():'?');$('vu-name').textContent=u.name||'User';$('vu-h').textContent=u.handle||'@user';$('vu-b').textContent=u.bio||'No bio yet';$('vu-sp').textContent=myPosts.length;var uFollowing=0;var uFollowers=0;var uSubscribers=0;var hasSong=false;var songCard=$('vu-song-card');if(songCard)songCard.style.display='none';if(sb&&supabaseOnline){try{var {data:songData}=await sb.from('user_songs').select('*').eq('user_id',u.id).eq('is_active',true).single();if(songData){hasSong=true;if($('vu-song-title'))$('vu-song-title').textContent=songData.title||'Untitled';if($('vu-song-artist'))$('vu-song-artist').textContent=songData.artist||'Unknown artist';if($('vu-audio')&&songData.song_url){$('vu-audio').src=songData.song_url}if(songCard)songCard.style.display='block'}}catch(e){}}if(!hasSong){var localSong=localStorage.getItem('cl_song_'+u.id);if(localSong){try{var s=JSON.parse(localSong);if($('vu-song-title'))$('vu-song-title').textContent=s.title||'Untitled';if($('vu-song-artist'))$('vu-song-artist').textContent=s.artist||'Unknown artist';if($('vu-audio')){if(s.url)$('vu-audio').src=s.url;else if(s.data)$('vu-audio').src=s.data}if(songCard)songCard.style.display='block'}catch(e){}}}if(songCard&&songCard.style.display!=='none'){var canListen=canListenToMusic(u.id);var playBtn=$('vu-play-btn');if(!canListen&&playBtn){playBtn.innerHTML='🔒';playBtn.title='Premium Connects only';playBtn.onclick=function(){showToast('Upgrade to Premium to listen to profile music')}}else if(playBtn){playBtn.innerHTML='▶';playBtn.title='Play';playBtn.onclick=toggleVUSong}}function finishViewUser(){$('vu-fl').textContent=uFollowers;$('vu-fg').textContent=uFollowing;var isPremium=isUserPremium(u.id);if(isPremium){$('vu-premium').style.display='block';$('vu-premium').innerHTML='⭐';$('vu-premium').style.color='#FFD700'}else{$('vu-premium').style.display='none'};var promo=$('vu-premium-promo');if(promo){var myPremium=isUserPremium(cu?cu.id:'');if(isPremium&&!myPremium){promo.style.display='block';$('vu-premium-promo-text').textContent='Become a Premium Link to watch '+esc(u.name||'User')+'\'s live content and unlock exclusive posts'}else{promo.style.display='none'}};$('vu-fbtn').textContent=follows[u.id]&&follows[u.id].following?'Disconnect':'Connect';$('vu-bbtn').textContent=blocks.indexOf(u.id)!==-1?'Unblock':'Block';$('vu-bbtn').style.display=isMe?'none':'inline-flex';$('vu-sbtn').style.display=isMe?'none':'inline-flex';$('vu-fbtn').style.display=isMe?'none':'inline-flex';$('vu-rbtn').style.display=isMe?'none':'inline-flex';switchVUTab('posts');navTo('user')}if(sb&&supabaseOnline){sb.from('follows').select('*').eq('following_id',u.id).then(function(r){var ids=[];(r.data||[]).forEach(function(f){ids.push(f.follower_id);if(f.subscribed)uSubscribers++});uFollowers=ids.length;var localFl=JSON.parse(localStorage.getItem('cl_followers')||'{}');localFl[u.id]=ids;localStorage.setItem('cl_followers',JSON.stringify(localFl));sb.from('follows').select('*').eq('follower_id',u.id).then(function(r2){var followingIds=[];(r2.data||[]).forEach(function(f){followingIds.push(f.following_id)});uFollowing=followingIds.length;var localFg=JSON.parse(localStorage.getItem('cl_following')||'{}');localFg[u.id]=followingIds;localStorage.setItem('cl_following',JSON.stringify(localFg));finishViewUser()}).catch(function(){finishViewUser()})}).catch(function(){finishViewUser()})}else{finishViewUser()}};
+window.showRecentSearches=async function(){
+  var box=$('recent-searches');
+  if(!box)return;
+  if(!cu||!sb||!supabaseOnline){box.style.display='none';return}
+  try{
+    var r=await sb.from('search_history').select('query').eq('user_id',cu.id).order('created_at',{ascending:false}).limit(8);
+    if(!r.data||!r.data.length){box.style.display='none';return}
+    var h='<div style="padding:8px 12px;font-size:12px;color:#888;border-bottom:1px solid var(--line)">Recent searches</div>';
+    var seen={};
+    r.data.forEach(function(row){
+      if(seen[row.query])return;seen[row.query]=true;
+      h+='<div style="padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:8px" onclick="$(&#39;p-sch&#39;).value=&#39;'+esc(row.query)+'&#39;;schPpl(&#39;'+esc(row.query)+'&#39;);hideRecentSearches()">';
+      h+='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#888"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>';
+      h+='<span style="flex:1">'+esc(row.query)+'</span>';
+      h+='</div>';
+    });
+    h+='<div style="padding:8px 12px;border-top:1px solid var(--line);text-align:center" onclick="clearRecentSearches()"><span style="color:var(--gold);font-size:12px;cursor:pointer">Clear history</span></div>';
+    box.innerHTML=h;box.style.display='block';
+  }catch(e){box.style.display='none'}
+};
+window.hideRecentSearches=function(){var box=$('recent-searches');if(box)box.style.display='none'};
+var _recentHideTimer=null;window.hideRecentSearchesSoon=function(){if(_recentHideTimer)clearTimeout(_recentHideTimer);_recentHideTimer=setTimeout(hideRecentSearches,200)};
+window.clearRecentSearches=async function(){if(!cu||!sb)return;try{await sb.from('search_history').delete().eq('user_id',cu.id);hideRecentSearches()}catch(e){console.log('clear search err',e)}};
 window.toggleFollowVU=function(){if(!cu||!vu)return;if(!follows[vu.id])follows[vu.id]={following:false,subscribed:false};var wasFollowing=follows[vu.id].following;follows[vu.id].following=!follows[vu.id].following;svf();saveFollowSupabase(vu.id,follows[vu.id].following);var allFollowers=JSON.parse(localStorage.getItem('cl_followers')||'{}');if(!allFollowers[vu.id])allFollowers[vu.id]=[];var myIdx=allFollowers[vu.id].indexOf(cu.id);if(follows[vu.id].following){if(myIdx===-1)allFollowers[vu.id].push(cu.id);if(vu.id!==cu.id&&!wasFollowing){addNotification('follow',vu.id,'connected with you')}}else{if(myIdx>-1)allFollowers[vu.id].splice(myIdx,1)}localStorage.setItem('cl_followers',JSON.stringify(allFollowers));$('vu-fbtn').textContent=follows[vu.id].following?'Disconnect':'Connect';showToast(follows[vu.id].following?'Connected!':'Disconnected')};
 window.toggleFollow=function(){if(!cu)return};
 window.toggleFollowId=function(id){if(!cu||!id)return;if(!follows[id])follows[id]={following:false,subscribed:false};var wasFollowing=follows[id].following;follows[id].following=!follows[id].following;svf();saveFollowSupabase(id,follows[id].following);var allFollowers=JSON.parse(localStorage.getItem('cl_followers')||'{}');if(!allFollowers[id])allFollowers[id]=[];var myIdx=allFollowers[id].indexOf(cu.id);if(follows[id].following){if(myIdx===-1)allFollowers[id].push(cu.id);if(id!==cu.id&&!wasFollowing){addNotification('follow',id,'connected with you')}}else{if(myIdx>-1)allFollowers[id].splice(myIdx,1)}localStorage.setItem('cl_followers',JSON.stringify(allFollowers))};

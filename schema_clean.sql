@@ -356,3 +356,52 @@ CREATE TRIGGER on_auth_user_created
 -- ============================================================
 -- DONE — Schema matches codebase 100%
 -- ============================================================
+
+-- ============================================================
+-- 13. SEARCH HISTORY TABLE
+-- ============================================================
+DROP TABLE IF EXISTS search_history CASCADE;
+CREATE TABLE search_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  query TEXT NOT NULL,
+  result_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE search_history ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own search history"
+  ON search_history FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own search history"
+  ON search_history FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own search history"
+  ON search_history FOR DELETE USING (auth.uid() = user_id);
+
+CREATE INDEX idx_search_history_user ON search_history(user_id, created_at DESC);
+
+-- ============================================================
+-- 14. SEARCH PROFILES RPC FUNCTION
+-- ============================================================
+CREATE OR REPLACE FUNCTION search_profiles(search_term TEXT)
+RETURNS TABLE (
+  id UUID,
+  display_name TEXT,
+  handle TEXT,
+  avatar_url TEXT,
+  bio TEXT
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT p.id, p.display_name, p.handle, p.avatar_url, p.bio
+  FROM profiles p
+  WHERE p.display_name ILIKE '%' || search_term || '%'
+     OR p.handle ILIKE '%' || search_term || '%'
+  ORDER BY
+    CASE WHEN p.display_name ILIKE search_term || '%' THEN 0 ELSE 1 END,
+    p.display_name
+  LIMIT 50;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
