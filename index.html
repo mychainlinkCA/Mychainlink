@@ -1356,7 +1356,7 @@ window.showAuth = function(tab) {
         <div class="fg">
           <label for="su-b" style="font-size:16px">Birthday</label>
           <input type="date" id="su-b" autocomplete="bday" min="1900-01-01" oninput="checkBirthday()" style="font-size:16px;padding:14px 16px">
-          <div class="hint" id="bd-hint">Must be 13 or older</div>
+          <div class="hint" id="bd-hint">Must be 18 or older</div>
         </div>
         <div class="fg">
           <label for="su-loc" style="font-size:16px">City you live in</label>
@@ -1916,7 +1916,7 @@ window.showAuth = function(tab) {
       <p class="bio" id="p-b">No bio yet</p>
       <div class="pstats">
         <div class="pstat"><div class="n" id="p-sp">0</div><div class="l">Posts</div></div>
-        <div class="pstat" id="pstat-fl" style="cursor:pointer" onclick="showFollowers()"><div class="n" id="p-fl">0</div><div class="l">Connects</div></div>
+        <div class="pstat" id="pstat-fl" style="cursor:pointer" onclick="showFollowers()"><div class="n" id="p-fl">0</div><div class="l">Connectors</div></div>
         <div class="pstat" id="pstat-fg" style="cursor:pointer" onclick="showFollowing()"><div class="n" id="p-fg">0</div><div class="l">Connected to</div></div>
         <div class="pstat"><div class="n" id="p-premium" style="display:none">⭐</div><div class="l">Premium</div></div>
       </div>
@@ -2092,7 +2092,7 @@ window.showAuth = function(tab) {
       <div class="s-item">
         <div style="display:flex;align-items:center;gap:12px">
           <div class="s-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-          <span class="sl">Show your connects</span>
+          <span class="sl">Show your connectors</span>
         </div>
         <div class="toggle on" id="t-show-connects" onclick="tShowConnects()"></div>
       </div>
@@ -2237,7 +2237,7 @@ window.showAuth = function(tab) {
       </div>
       <div class="pstats">
         <div class="pstat"><div class="n" id="vu-sp">0</div><div class="l">Posts</div></div>
-        <div class="pstat"><div class="n" id="vu-fl">0</div><div class="l">Connects</div></div>
+        <div class="pstat"><div class="n" id="vu-fl">0</div><div class="l">Connectors</div></div>
         <div class="pstat"><div class="n" id="vu-fg">0</div><div class="l">Connected to</div></div>
         <div class="pstat"><div class="n" id="vu-premium" style="display:none">⭐</div><div class="l">Premium</div></div>
       </div>
@@ -2821,7 +2821,7 @@ window.suNextStep=function(){
     if(!loc){er.textContent='Enter your city';er.classList.add('show');return;}
     var bd=new Date(b);
     var age=(Date.now()-bd.getTime())/(1000*60*60*24*365.25);
-    if(age<13){er.textContent='You must be 13 or older';er.classList.add('show');return;}
+    if(age<18){er.textContent='You must be 18 or older';er.classList.add('show');return;}
   }
   if(suCurrentStep===4){
     if(isOAuth){suCurrentStep=6;document.querySelectorAll('.su-step[data-step="3"]').forEach(function(el){el.style.display='none'});document.querySelectorAll('.su-step[data-step="6"]').forEach(function(el){el.style.display='block'});updateStepDots();updateStepButtons();updateStepTitles();return;}
@@ -2916,7 +2916,7 @@ window.toggleReveal=function(key,force){
 window.revealKey=function(e,key){if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleReveal(key)}};
 
 // ==================== SIGN-UP: BIRTHDAY ====================
-var MIN_AGE=13;
+var MIN_AGE=18;
 function ageFromDate(str){
   if(!str)return null;
   var parts=str.split('-');
@@ -2936,7 +2936,7 @@ window.checkBirthday=function(){
   if(!el||!hint)return;
   var v=el.value;
   if(!v){
-    hint.innerHTML="We use this for your birthday badge and to confirm you're <b>13 or older</b>. Only the day and month are ever shown to other people.";
+    hint.innerHTML="We use this for your birthday badge and to confirm you're <b>18 or older</b>. Only the day and month are ever shown to other people.";
     hint.style.color='';el.removeAttribute('aria-invalid');return;
   }
   var age=ageFromDate(v);
@@ -3326,7 +3326,7 @@ window.su=async function(){
         var meta2=cu.user_metadata||{};
         var nowIso2=new Date().toISOString();
         if(r.data.session){
-          try{await sb.from('profiles').upsert({id:cu.id,display_name:n,handle:handle,birth_date:bd,location:loc,avatar:avatarUrl,terms_agreed_at:nowIso2,terms_version:'1.0',security_question_1:sq||'',security_answer_1:saH,security_question_2:sq2||'',security_answer_2:sa2H},{onConflict:'id'})}
+          try{await sb.from('profiles').upsert({id:cu.id,display_name:n,handle:handle,location:loc,avatar_url:avatarUrl},{onConflict:'id'});await sb.auth.updateUser({data:{birth_date:bd,terms_agreed_at:nowIso2,terms_version:'1.0'}})}
           catch(pe){console.log('profile detail sync skipped',pe)}
         }
         if(!localUsers.find(function(u){return u.id===cu.id||u.email===e})){
@@ -4125,7 +4125,8 @@ window.toggleFollowVU=function(){if(!cu||!vu)return;if(!follows[vu.id])follows[v
 window.toggleFollow=function(){if(!cu)return};
 window.toggleFollowId=function(id){if(!cu||!id)return;if(!follows[id])follows[id]={following:false,subscribed:false};var wasFollowing=follows[id].following;follows[id].following=!follows[id].following;svf();saveFollowSupabase(id,follows[id].following);var allFollowers=JSON.parse(localStorage.getItem('cl_followers')||'{}');if(!allFollowers[id])allFollowers[id]=[];var myIdx=allFollowers[id].indexOf(cu.id);if(follows[id].following){if(myIdx===-1)allFollowers[id].push(cu.id);if(id!==cu.id&&!wasFollowing){addNotification('follow',id,'connected with you')}}else{if(myIdx>-1)allFollowers[id].splice(myIdx,1)}localStorage.setItem('cl_followers',JSON.stringify(allFollowers))};
 window.toggleBlock=function(){if(!cu||!vu)return;var i=blocks.indexOf(vu.id);if(i>-1){blocks.splice(i,1);showToast('Unblocked');$('vu-bbtn').textContent='Block'}else{blocks.push(vu.id);showToast('Blocked');$('vu-bbtn').textContent='Unblock';if(follows[vu.id]){follows[vu.id].following=false;follows[vu.id].subscribed=false}svf()}svb()};
-window.showFollowers=async function(){if(!cu)return;$('flw-t').textContent='Connects';$('m-flw').classList.add('on');$('flw-l').innerHTML='<div style="text-align:center;padding:20px"><div class="spin show"></div></div>';var ids=[];if(sb&&supabaseOnline){try{var r=await sb.from('follows').select('*').eq('following_id',cu.id);(r.data||[]).forEach(function(f){ids.push(f.follower_id)});var localFl=JSON.parse(localStorage.getItem('cl_followers')||'{}');localFl[cu.id]=ids;localStorage.setItem('cl_followers',JSON.stringify(localFl))}catch(e){ids=(JSON.parse(localStorage.getItem('cl_followers')||'{}')[cu.id]||[])}}else{ids=(JSON.parse(localStorage.getItem('cl_followers')||'{}')[cu.id]||[])}var missingIds=ids.filter(function(id){return!getUserData(id)});if(missingIds.length&&sb&&supabaseOnline){try{var {data:profiles}=await sb.from('profiles').select('id,display_name,handle,avatar_url,bio').in('id',missingIds);if(profiles){var allUsersStore=JSON.parse(localStorage.getItem('cl_allUsers')||'[]');profiles.forEach(function(u){if(!allUsersStore.find(function(x){return x.id===u.id})){var localEmail='';var lu=localUsers.find(function(x){return x.id===u.id});if(lu)localEmail=lu.email||'';allUsersStore.push({id:u.id,email:localEmail,name:u.display_name||'User',handle:u.handle||'@user',avatar:u.avatar_url||'',bio:u.bio||''})}});localStorage.setItem('cl_allUsers',JSON.stringify(allUsersStore))}}catch(e){}}var h='';if(!ids.length){h='<div style="text-align:center;padding:20px;color:#666">No connects yet</div>'}else{ids.forEach(function(id){var u=getUserData(id);if(!u)return;h+='<div class="p-card" style="margin-bottom:8px;cursor:pointer" onclick="viewUserFromModal(this)" data-uid="'+id+'">';h+='<div class="av" style="width:40px;height:40px">'+(u.avatar?'<img src="'+u.avatar+'">':(u.name?u.name[0].toUpperCase():'?'))+'</div>';h+='<div class="info"><div class="n">'+esc(u.name)+'</div><div class="h">'+esc(u.handle)+'</div></div>';h+='</div>'})}$('flw-l').innerHTML=h};
+window.showFollowers=async function(){if(!cu)return;$('flw-t').textContent='Connectors';$('m-flw').classList.add('on');$('flw-l').innerHTML='<div style="text-align:center;padding:20px"><div class="spin show"></div></div>';var ids=[];if(sb&&supabaseOnline){try{var r=await sb.from('follows').select('*').eq('following_id',cu.id);(r.data||[]).forEach(function(f){ids.push(f.follower_id)});var localFl=JSON.parse(localStorage.getItem('cl_followers')||'{}');localFl[cu.id]=ids;localStorage.setItem('cl_followers',JSON.stringify(localFl))}catch(e){ids=(JSON.parse(localStorage.getItem('cl_followers')||'{}')[cu.id]||[])}}else{ids=(JSON.parse(localStorage.getItem('cl_followers')||'{}')[cu.id]||[])}var missingIds=ids.filter(function(id){return!getUserData(id)});if(missingIds.length&&sb&&supabaseOnline){try{var {data:profiles}=await sb.from('profiles').select('id,display_name,handle,avatar_url,bio').in('id',missingIds);if(profiles){var allUsersStore=JSON.parse(localStorage.getItem('cl_allUsers')||'[]');profiles.forEach(function(u){if(!allUsersStore.find(function(x){return x.id===u.id})){var localEmail='';var lu=localUsers.find(function(x){return x.id===u.id});if(lu)localEmail=lu.email||'';allUsersStore.push({id:u.id,email:localEmail,name:u.display_name||'User',handle:u.handle||'@user',avatar:u.avatar_url||'',bio:u.bio||''})}});localStorage.setItem('cl_allUsers',JSON.stringify(allUsersStore))}}catch(e){}}var h='';if(!ids.length){h='<div style="text-align:center;padding:20px;color:#666">No connectors yet</div>'}else{ids.forEach(function(id){var u=getUserData(id);if(!u)return;h+='<div class="p-card" style="margin-bottom:8px;cursor:pointer" onclick="viewUserFromModal(this)" data-uid="'+id+'">';h+='<div class="av" style="width:40px;height:40px">'+(u.avatar?'<img src="'+u.avatar+'">':(u.name?u.name[0].toUpperCase():'?'))+'</div>';h+='<div class="info"><div class="n">'+esc(u.name)+'</div><div class="h">'+esc(u.handle)+'</div></div>';h+='</div>'})}$('flw-l').innerHTML=h};
+window.viewUser=async function(id){if(!id)return;if(cu&&id===cu.id){navTo('profile');return}var u=getUserData(id);if(!u&&sb&&supabaseOnline){u=await fetchUserFromSupabase(id)}if(!u){showToast('User not found');return}vu={id:u.id,name:u.name||'User',handle:u.handle||'@user',avatar:u.avatar||'',bio:u.bio||'',conversation_theme:u.conversation_theme||''};$('vu-av').innerHTML=vu.avatar?'<img src="'+vu.avatar+'">':(vu.name?vu.name[0].toUpperCase():'?');$('vu-name').textContent=vu.name;$('vu-h').textContent=vu.handle;$('vu-b').textContent=vu.bio||'No bio yet';var theirPosts=posts.filter(function(p){return p.uid===vu.id||p.wfor===vu.id});$('vu-sp').textContent=theirPosts.length;if(!follows[vu.id])follows[vu.id]={following:false,subscribed:false};$('vu-fbtn').textContent=follows[vu.id].following?'Disconnect':'Connect';var rbtn=$('vu-rbtn');if(rbtn)rbtn.style.display='inline-flex';var wbtn=$('vu-wall-btn');if(wbtn)wbtn.style.display='inline-flex';if(sb&&supabaseOnline){sb.from('follows').select('*').eq('following_id',vu.id).then(function(r){if(vu&&vu.id===u.id)$('vu-fl').textContent=(r.data||[]).length}).catch(function(){});sb.from('follows').select('*').eq('follower_id',vu.id).then(function(r){if(vu&&vu.id===u.id)$('vu-fg').textContent=(r.data||[]).length}).catch(function(){})}else{var localFl=JSON.parse(localStorage.getItem('cl_followers')||'{}');$('vu-fl').textContent=(localFl[vu.id]||[]).length;$('vu-fg').textContent='0'}var isPrem=isUserPremium(vu.id);$('vu-premium').style.display=isPrem?'block':'none';var songCard=$('vu-song-card');if(songCard)songCard.style.display='none';navTo('user');switchVUTab('posts')};
 window.viewUserFromModal=function(el){var id=el.getAttribute('data-uid');if(id){closeModal('m-flw');viewUser(id)}};window.showFollowing=async function(){if(!cu)return;$('flw-t').textContent='Connected to';$('m-flw').classList.add('on');$('flw-l').innerHTML='<div style="text-align:center;padding:20px"><div class="spin show"></div></div>';var followingIds=Object.keys(follows).filter(function(k){return follows[k]&&follows[k].following});var missingIds=followingIds.filter(function(id){return!getUserData(id)});if(missingIds.length&&sb&&supabaseOnline){try{var {data:profiles}=await sb.from('profiles').select('id,display_name,handle,avatar_url,bio').in('id',missingIds);if(profiles){var allUsersStore=JSON.parse(localStorage.getItem('cl_allUsers')||'[]');profiles.forEach(function(u){if(!allUsersStore.find(function(x){return x.id===u.id})){var localEmail='';var lu=localUsers.find(function(x){return x.id===u.id});if(lu)localEmail=lu.email||'';allUsersStore.push({id:u.id,email:localEmail,name:u.display_name||'User',handle:u.handle||'@user',avatar:u.avatar_url||'',bio:u.bio||''})}});localStorage.setItem('cl_allUsers',JSON.stringify(allUsersStore))}}catch(e){}}var h='';if(!followingIds.length){h='<div style="text-align:center;padding:20px;color:#666">Not connected to anyone yet</div>'}else{followingIds.forEach(function(id){var u=getUserData(id);if(!u)return;h+='<div class="p-card" style="margin-bottom:8px;cursor:pointer" onclick="viewUserFromModal(this)" data-uid="'+id+'">';h+='<div class="av" style="width:40px;height:40px">'+(u.avatar?'<img src="'+u.avatar+'">':(u.name?u.name[0].toUpperCase():'?'))+'</div>';h+='<div class="info"><div class="n">'+esc(u.name)+'</div><div class="h">'+esc(u.handle)+'</div></div>';h+='</div>'})}$('flw-l').innerHTML=h};
 
 // ==================== SUBSCRIBE / PAYPAL ====================
