@@ -3513,7 +3513,7 @@ window.showApp=async function(){
   subscribeToNotifications();loadNotificationsFromSupabase();syncDeletedUsers();updateNotifBadge();updateMsgBadge();checkTrialReminder();startHeartbeat();
 };
 
-window.checkTrialReminder=function(){if(!cu)return;var trialStart=localStorage.getItem('cl_trial_start_'+cu.id);var isPaid=localStorage.getItem('cl_premium_'+cu.id);if(!trialStart||isPaid==='true')return;var days=Math.floor((Date.now()-new Date(trialStart).getTime())/(1000*60*60*24));var daysLeft=7-days;if(daysLeft<=0){showToast('Your 7-day trial has ended. Subscribe to keep Premium!');showPremiumModal();return}if(daysLeft<=2){showToast('Your free trial ends in '+daysLeft+' day'+(daysLeft===1?'':'s')+'. Subscribe now to avoid interruption.')}};window.navTo=function(p){var map=['main','explore','cam','messages','profile'];var pageMap={main:'pg-main',explore:'pg-people',people:'pg-people',cam:'pg-cam',messages:'pg-messages',profile:'pg-profile',settings:'pg-settings',user:'pg-user','coming-soon':'pg-coming-soon'};if(!pageMap[p])return;map.forEach(function(x){var el=document.querySelector('.mit[onclick="navTo(\''+x+'\')"]');if(el)el.classList.remove('a')});var activeBtn=document.querySelector('.mit[onclick="navTo(\''+p+'\')"]');if(activeBtn)activeBtn.classList.add('a');Object.values(pageMap).forEach(function(id){$(id).classList.remove('active')});$(pageMap[p]).classList.add('active');cp=p;if(p==='profile'){renderProfile()}if(p==='main'){renderNews()}if(p==='explore'||p==='people'){var schVal=$('p-sch').value.trim();if(schVal){schPpl(schVal)}else{renderPeople()}loadActiveConnectors()}if(p==='messages'){renderMessages();clearMsgBadge();if(window.msgChannel){try{window.msgChannel.unsubscribe()}catch(e){}}window.msgChannel=null;window.currentConvId=null}};
+window.checkTrialReminder=function(){if(!cu)return;var trialStart=localStorage.getItem('cl_trial_start_'+cu.id);var isPaid=localStorage.getItem('cl_premium_'+cu.id);if(!trialStart||isPaid==='true')return;var days=Math.floor((Date.now()-new Date(trialStart).getTime())/(1000*60*60*24));var daysLeft=7-days;if(daysLeft<=0){showToast('Your 7-day trial has ended. Subscribe to keep Premium!');showPremiumModal();return}if(daysLeft<=2){showToast('Your free trial ends in '+daysLeft+' day'+(daysLeft===1?'':'s')+'. Subscribe now to avoid interruption.')}};window.navTo=function(p){var map=['main','explore','cam','messages','profile'];var pageMap={main:'pg-main',news:'pg-main',explore:'pg-people',people:'pg-people',cam:'pg-cam',messages:'pg-messages',profile:'pg-profile',settings:'pg-settings',user:'pg-user','coming-soon':'pg-coming-soon'};if(!pageMap[p])return;map.forEach(function(x){var el=document.querySelector('.mit[onclick="navTo(\''+x+'\')"]');if(el)el.classList.remove('a')});var activeBtn=document.querySelector('.mit[onclick="navTo(\''+p+'\')"]');if(activeBtn)activeBtn.classList.add('a');Object.values(pageMap).forEach(function(id){$(id).classList.remove('active')});$(pageMap[p]).classList.add('active');cp=p;if(p==='profile'){renderProfile()}if(p==='main'){renderNews()}if(p==='explore'||p==='people'){var schVal=$('p-sch').value.trim();if(schVal){schPpl(schVal)}else{renderPeople()}updateLastActive();loadActiveConnectors()}if(p==='messages'){renderMessages();clearMsgBadge();if(window.msgChannel){try{window.msgChannel.unsubscribe()}catch(e){}}window.msgChannel=null;window.currentConvId=null}};
 function goBackFromUser(){if(cp==='people'){navTo('explore')}else{navTo('main')}}window.goBackFromUser=goBackFromUser;
 
 // ==================== NOTIFICATIONS PULLDOWN ====================
@@ -4046,6 +4046,19 @@ window.startHeartbeat = function(){
   updateLastActive();
   // Then every 30 seconds
   _heartbeatTimer = setInterval(updateLastActive, 30000);
+  // Mobile: update when tab becomes visible again (intervals get throttled in background)
+  if(!window._visHandlerSet){
+    document.addEventListener('visibilitychange', function(){
+      if(!document.hidden && cu && sb && supabaseOnline){
+        updateLastActive();
+        // If on explore page, refresh active connectors too
+        if($('pg-people') && $('pg-people').classList.contains('active')){
+          loadActiveConnectors();
+        }
+      }
+    });
+    window._visHandlerSet = true;
+  }
 };
 
 window.stopHeartbeat = function(){
@@ -4053,9 +4066,13 @@ window.stopHeartbeat = function(){
 };
 
 window.updateLastActive = async function(){
-  if(!cu || !sb || !supabaseOnline) return;
+  if(!cu) return;
+  var now = new Date().toISOString();
+  // Always save locally as fallback
+  localStorage.setItem('cl_last_active_' + cu.id, now);
+  if(!sb || !supabaseOnline) return;
   try{
-    await sb.from('profiles').update({last_active: new Date().toISOString()}).eq('id', cu.id);
+    await sb.from('profiles').update({last_active: now}).eq('id', cu.id);
   }catch(e){ console.log('[heartbeat] error', e); }
 };
 
@@ -4078,18 +4095,22 @@ window.loadActiveConnectors = async function(){
     var r = await sb.from('profiles')
       .select('id,display_name,handle,avatar_url,last_active')
       .gt('last_active', cutoff)
-      .neq('id', cu ? cu.id : '')
       .limit(20);
     if(r.error){ console.log('[active] error', r.error); container.style.display = 'none'; return; }
     var users = r.data || [];
+    // Always include current user so section shows even when alone
+    if(cu && cu.id && !users.find(function(u){return u.id === cu.id})){
+      users.unshift({id: cu.id, display_name: cu.user_metadata && cu.user_metadata.display_name ? cu.user_metadata.display_name : 'You', handle: cu.user_metadata && cu.user_metadata.handle ? cu.user_metadata.handle : '@you', avatar_url: cu.user_metadata && cu.user_metadata.avatar ? cu.user_metadata.avatar : '', last_active: new Date().toISOString(), isSelf: true});
+    }
     if(!users.length){ container.style.display = 'none'; return; }
     var h = '';
     users.forEach(function(u){
       var name = u.display_name || 'User';
       var initial = name[0].toUpperCase();
-      h += '<div class="active-connector" onclick="viewUser(' + (u.id ? "'" + u.id + "'" : '') + ')">';
+      var isSelf = u.isSelf || (cu && u.id === cu.id);
+      h += '<div class="active-connector" onclick="' + (isSelf ? 'navTo(\'profile\')' : 'viewUser(' + (u.id ? "'" + u.id + "'" : '') + ')') + '">';
       h += '<div class="av av-online">' + (u.avatar_url ? '<img src="' + u.avatar_url + '">' : initial) + '</div>';
-      h += '<div class="name">' + esc(name) + '</div>';
+      h += '<div class="name">' + esc(name) + (isSelf ? ' <span style="font-size:9px;color:var(--gold)">(You)</span>' : '') + '</div>';
       h += '</div>';
     });
     list.innerHTML = h;
