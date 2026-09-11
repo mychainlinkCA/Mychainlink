@@ -3511,7 +3511,6 @@ window.showApp=async function(){
   if(cu){var meta=cu.user_metadata||{};var lu=localUsers.find(function(u){return u.id===cu.id});if(!lu){var newLocalUser={id:cu.id,name:meta.display_name||'User',email:cu.email||'',password:'',handle:meta.handle||('@user_'+cu.id.slice(0,8)),bio:meta.bio||'',avatar:meta.avatar||'',securityQuestion:'',securityAnswer:'',twoFactorPIN:''};saveLocalUser(newLocalUser);lu=newLocalUser}var bio=meta.bio||'';var avatar=meta.avatar||'';if(lu){bio=lu.bio||bio;avatar=lu.avatar||avatar}var name=meta.display_name||lu.name||'User';var handle=meta.handle||lu.handle||('@user_'+cu.id.slice(0,8));document.getElementById('pp-c-av').innerHTML=avatar?'<img src="'+avatar+'">':(name?name[0].toUpperCase():'?');document.getElementById('p-av').innerHTML=avatar?'<img src="'+avatar+'">':(name?name[0].toUpperCase():'?');var mainAv2=document.getElementById('main-c-av');if(mainAv2)mainAv2.innerHTML=avatar?'<img src="'+avatar+'">':(name?name[0].toUpperCase():'?');document.getElementById('p-n').textContent=name;document.getElementById('p-h').textContent=handle;document.getElementById('p-b').textContent=bio||'No bio yet'}
   renderNews();renderNotifDrop();updateNotifBadge();
   if(!localStorage.getItem('cl_username_banner_dismissed')){var banner=document.getElementById('username-fix-banner');if(banner)banner.style.display='block'}
-  if(!localStorage.getItem('cl_tutorial_seen')){console.log('[Tutorial] Will show in 1.2s');setTimeout(function(){console.log('[Tutorial] Timeout fired');if(cu&&sb&&supabaseOnline){sb.from('profiles').select('tutorial_seen').eq('id',cu.id).single().then(function(r){if(r.data&&r.data.tutorial_seen){console.log('[Tutorial] Already seen per Supabase');localStorage.setItem('cl_tutorial_seen','1');return}showTut()}).catch(function(){showTut()})}else{showTut()}},1200)};
   subscribeToNotifications();loadNotificationsFromSupabase();syncDeletedUsers();updateNotifBadge();updateMsgBadge();checkTrialReminder();startHeartbeat();
 };
 
@@ -4597,9 +4596,6 @@ if(location.hash==='#signup'){
   if(typeof resetSignupWizard==='function')resetSignupWizard();
   history.replaceState(null,'',location.pathname);
 }
-
-// Tutorial backup trigger
-window.addEventListener('load',function(){if(cu&&!localStorage.getItem('cl_tutorial_seen')){console.log('[Tutorial] Window load backup trigger');setTimeout(function(){if(cu&&sb&&supabaseOnline){sb.from('profiles').select('tutorial_seen').eq('id',cu.id).single().then(function(r){if(r.data&&r.data.tutorial_seen){localStorage.setItem('cl_tutorial_seen','1');return}showTut()}).catch(function(){showTut()})}else{showTut()}},2000)}});
 
 // Show premium actions in camera when premium
 window.updateCamPremiumActions=function(){var el=$('cam-premium-actions');if(!el)return;var hasPremium=cu&&(isUserPremium(cu.id)||getTrialDaysLeft(cu.id)>0);el.style.display=hasPremium?'flex':'none'};
