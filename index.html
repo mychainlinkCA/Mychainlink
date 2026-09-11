@@ -2601,7 +2601,7 @@ window.showAuth = function(tab) {
 // ==================== SUPABASE ====================
 var SURL='https://pvtliggkbiwdzedmguag.supabase.co';
 // Load Supabase key from localStorage (set via browser console: localStorage.setItem('cl_sb_key','your-key'))
-var SKEY=localStorage.getItem('cl_sb_key')||'';
+var SKEY=localStorage.getItem('cl_sb_key')||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2dGxpZ2drYml3ZHplZG1ndWFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NDI3MjcsImV4cCI6MjEwMTIxODcyN30.9J-kZO5i5sK7cSb18BsZVN_WZSeejofVzqcKKQ-440M';
 var sb=null;
 var supabaseOnline=false;
 try{sb=supabase.createClient(SURL,SKEY,{auth:{flowType:'pkce',autoRefreshToken:true,persistSession:true,detectSessionInUrl:true}});supabaseOnline=true}catch(e){console.log('Supabase offline, using local auth')}
