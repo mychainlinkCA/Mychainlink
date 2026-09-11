@@ -1730,6 +1730,9 @@ window.showAuth = function(tab) {
   <div class="topbar">
     <div style="font-weight:700;font-size:17px;letter-spacing:-0.02em;cursor:pointer" onclick="navTo('main')"><span style="color:#fff">My</span><span style="color:#FFD700">Chain</span><span style="color:#fff">Link</span></div>
     <div style="display:flex;align-items:center;gap:10px">
+      <div class="nav-chain" onclick="navTo('explore');setTimeout(function(){var s=$('p-sch');if(s){s.focus();}},150)" title="Search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </div>
       <div class="nav-chain" onclick="toggleNotif()" id="notif-btn" style="position:relative">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         <span id="ni" style="display:none;position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:#FFD700;border-radius:50%;border:2px solid #14120E"></span>
@@ -3328,7 +3331,7 @@ window.su=async function(){
         var meta2=cu.user_metadata||{};
         var nowIso2=new Date().toISOString();
         if(r.data.session){
-          try{await sb.from('profiles').upsert({id:cu.id,display_name:n,handle:handle,location:loc,avatar_url:avatarUrl},{onConflict:'id'});await sb.auth.updateUser({data:{birth_date:bd,terms_agreed_at:nowIso2,terms_version:'1.0'}})}
+          try{await sb.from('profiles').upsert({id:cu.id,display_name:n,handle:handle,location:loc,avatar_url:avatarUrl},{onConflict:'id'});await sb.auth.updateUser({data:{avatar:avatarUrl,birth_date:bd,terms_agreed_at:nowIso2,terms_version:'1.0'}})}
           catch(pe){console.log('profile detail sync skipped',pe)}
         }
         if(!localUsers.find(function(u){return u.id===cu.id||u.email===e})){
