@@ -37,7 +37,7 @@ Premium features include colored fonts, live streaming, profile songs, custom co
 ## File Structure
 
 ```
-Mychainlink/
+My chain link/
 ├── index.html          # Main app (single file, ~220KB)
 ├── login.html          # Standalone login page
 ├── terms.html          # Terms of Service
