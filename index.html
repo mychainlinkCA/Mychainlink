@@ -2618,6 +2618,11 @@ var supabaseOnline=false;
 try{sb=supabase.createClient(SURL,SKEY,{auth:{flowType:'pkce',autoRefreshToken:true,persistSession:true,detectSessionInUrl:true}});supabaseOnline=true}catch(e){console.log('Supabase offline, using local auth')}
 
 // ==================== LOCAL AUTH FALLBACK ====================
+// ==================== TERMS OF SERVICE VERSION ====================
+// Bump this whenever you update terms.html — every user gets
+// re-prompted to agree on their next visit.
+var TERMS_VERSION='2.1';
+
 var localUsers=JSON.parse(localStorage.getItem('cl_localUsers')||'[]');
 function saveLocalUser(user){localUsers.push(user);localStorage.setItem('cl_localUsers',JSON.stringify(localUsers));var allUsersStore=JSON.parse(localStorage.getItem('cl_allUsers')||'[]');if(!allUsersStore.find(function(u){return u.id===user.id})){allUsersStore.push({id:user.id,email:user.email||'',name:user.name||user.user_metadata&&user.user_metadata.display_name||'User',handle:user.handle||user.user_metadata&&user.user_metadata.handle||'@user',avatar:user.avatar||user.user_metadata&&user.user_metadata.avatar||''});localStorage.setItem('cl_allUsers',JSON.stringify(allUsersStore))}}
 function findLocalUser(email,password){return localUsers.find(function(u){return u.email===email&&u.password===password})}
