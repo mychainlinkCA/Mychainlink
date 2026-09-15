@@ -490,15 +490,17 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1}
 .notif-drop .n-item:hover{background:var(--surf-3);transform:translateX(2px)}
 
 /* === MENU DROPDOWN ========================================== */
-.menu-drop{position:fixed;top:60px;right:10px;z-index:99;display:none;background:var(--surf-2);border:1px solid var(--line);border-radius:var(--r-lg);padding:10px;min-width:220px;box-shadow:var(--sh-3)}
+.menu-drop{position:fixed;top:60px;right:10px;z-index:99;display:none;background:var(--gold);border:1px solid var(--gold-edge);border-radius:var(--r-lg);padding:10px;min-width:220px;max-height:70vh;overflow-y:auto;box-shadow:var(--sh-3);scrollbar-width:thin;scrollbar-color:#141210 transparent}
+.menu-drop::-webkit-scrollbar{width:8px}
+.menu-drop::-webkit-scrollbar-track{background:transparent}
+.menu-drop::-webkit-scrollbar-thumb{background:#141210;border-radius:8px}
 .menu-drop.on{display:block;animation:rise .3s var(--ease-out) both}
-.menu-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r);font-size:15px;color:var(--ink);transition:background .2s}
-.menu-item:hover{background:var(--bg-soft)}
-.menu-item svg{color:var(--ink-3);flex-shrink:0}
-.menu-item.menu-danger{color:#FF3366}
-.menu-item.menu-danger svg{color:#FF3366}
-.menu-sep{height:1px;background:var(--line);margin:8px 0}
-
+.menu-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r);font-size:15px;color:#141210;transition:background .2s}
+.menu-item:hover{background:rgba(20,18,16,.12)}
+.menu-item svg{color:#141210;flex-shrink:0}
+.menu-item.menu-danger{color:#C2184B}
+.menu-item.menu-danger svg{color:#C2184B}
+.menu-sep{height:1px;background:rgba(20,18,16,.2);margin:8px 0}
 /* === MESSAGE BUBBLES ======================================= */
 .msg-row{display:flex;width:100%;margin-bottom:4px}
 .msg-row.sent{justify-content:flex-end}
@@ -1121,7 +1123,6 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1}
   if(saved==='light'){document.documentElement.setAttribute('data-theme','light');}
 })();
 </script>
-<base target="_blank">
 </head>
 <body>
 <script>
