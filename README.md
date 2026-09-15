@@ -187,9 +187,9 @@ Most premium features check `isUserPremium(userId)` which looks at:
 ## Contact
 
 - **Creator:** Kendal Symes
-- **Email:** Kendalchaincreator@proton.me
+- **Email:** support@mychainlink.ca
 - **Domain:** mychainlink.ca
-- **Slogan:** Get connected. Stay connected.
+- **Slogan:** Your content. Your price. You're worth it.
 
 ---
 
